@@ -41,6 +41,8 @@ create table spider_db.job_info
 
 
 ## 2.运行测试
+需要一个 edge 浏览器；
+
 ```cmd
 python boss_selenium.py
 ```

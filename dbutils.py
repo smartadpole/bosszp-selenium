@@ -4,14 +4,14 @@
 # @time    : 2023/11/30 17:15
 # @function: the script is used to do something.
 # @version : V1
-"""定义 DBUtils 工具类, 封装 MySQL 数据库常用操作 API
+"""Define DBUtils utility class, encapsulating MySQL database common operations API
 
-    - 方法1(select_all): 查询所有数据
-    - 方法2(select_one): 查询一条数据
-    - 方法3(select_n): 查询前 n 条数据
-    - 方法4(insert_data): 插入数据
-    - 方法5(update_data): 更新数据
-    - 方法6(delete_data): 删除数据
+    - Method 1(select_all): Query all data
+    - Method 2(select_one): Query one data
+    - Method 3(select_n): Query first n data
+    - Method 4(insert_data): Insert data
+    - Method 5(update_data): Update data
+    - Method 6(delete_data): Delete data
 """
 import pymysql
 
@@ -19,19 +19,19 @@ import pymysql
 class DBUtils:
     def __init__(self, host, user, password, db, port=3306, charset='utf8'):
         """
-        DBUtils 初始化方法，实例化 DBUtils 类的时候会默认调用,仅调用 1 次
+        DBUtils initialization method, called by default when instantiating DBUtils class, only called once
         """
-        # 初始化操作，例如建立数据库连接等
+        # Initialize operations, such as establishing database connection
         self.conn = pymysql.connect(host=host, user=user, password=password, db=db, port=port, charset=charset)
-        # 获取游标 pymysql.cursors.DictCursor 指定返回值类型为 字典 类型
+        # Get cursor pymysql.cursors.DictCursor specifies return value type as dictionary type
         self.cursor = self.conn.cursor(pymysql.cursors.DictCursor)
 
     def select_all(self, sql, args=None):
         """
-        查询所有数据
-        :param sql: 查询数据的 sql
-        :param args: 参数，只能是元组或者列表
-        :return: 返回结果集
+        Query all data
+        :param sql: SQL for querying data
+        :param args: Parameters, can only be tuple or list
+        :return: Return result set
         """
         self.cursor.execute(sql, args)
         result = self.cursor.fetchall()
@@ -39,11 +39,11 @@ class DBUtils:
 
     def select_n(self, sql, n, args=None):
         """
-        查询满足条件的前 n 条数据
-        :param sql: 查询数据的 sql
-        :param n: 查询的条数
-        :param args: 参数，只能是元组或者列表
-        :return: 返回结果集
+        Query first n data that meet the conditions
+        :param sql: SQL for querying data
+        :param n: Number of data to query
+        :param args: Parameters, can only be tuple or list
+        :return: Return result set
         """
         self.cursor.execute(sql, args)
         result = self.cursor.fetchmany(n)
@@ -51,10 +51,10 @@ class DBUtils:
 
     def select_one(self, sql, args=None):
         """
-        查询满足条件的第 1 条数据
-        :param sql: 查询数据的 sql
-        :param args: 参数，只能是元组或者列表
-        :return: 返回结果集
+        Query first data that meet the conditions
+        :param sql: SQL for querying data
+        :param args: Parameters, can only be tuple or list
+        :return: Return result set
         """
         self.cursor.execute(sql, args)
         result = self.cursor.fetchone()
@@ -62,10 +62,10 @@ class DBUtils:
 
     def insert_data(self, sql, args=None):
         """
-        插入数据
-        :param sql: 插入数据的 sql
-        :param args: 参数，只能是元组或者列表
-        :return: 返回受影响的行数
+        Insert data
+        :param sql: SQL for inserting data
+        :param args: Parameters, can only be tuple or list
+        :return: Return number of affected rows
         """
         self.cursor.execute(sql, args)
         self.conn.commit()
@@ -73,10 +73,10 @@ class DBUtils:
 
     def update_data(self, sql, args=None):
         """
-        更新数据
-        :param sql: 更新数据的 sql
-        :param args: 参数，只能是元组或者列表
-        :return: 返回受影响的行数
+        Update data
+        :param sql: SQL for updating data
+        :param args: Parameters, can only be tuple or list
+        :return: Return number of affected rows
         """
         self.cursor.execute(sql, args)
         self.conn.commit()
@@ -84,18 +84,52 @@ class DBUtils:
 
     def delete_data(self, sql, args=None):
         """
-        删除数据
-        :param sql: 删除数据的 sql
-        :param args: 参数，只能是元组或者列表
-        :return: 返回受影响的行数
+        Delete data
+        :param sql: SQL for deleting data
+        :param args: Parameters, can only be tuple or list
+        :return: Return number of affected rows
         """
         self.cursor.execute(sql, args)
         self.conn.commit()
         return self.cursor.rowcount
 
+    def create_database_and_table(self):
+        """
+        Create database and table
+        """
+        # Create database
+        self.cursor.execute("drop database if exists spider_db")
+        self.cursor.execute("create database if not exists spider_db")
+        self.cursor.execute("use spider_db")
+        
+        # Create table
+        create_table_sql = """
+        create table if not exists spider_db.job_info
+        (
+            category         varchar(255) null comment 'Primary category',
+            sub_category     varchar(255) null comment 'Secondary category',
+            job_title        varchar(255) null comment 'Job title',
+            province         varchar(100) null comment 'Province',
+            job_location     varchar(255) null comment 'Job location',
+            job_company      varchar(255) null comment 'Company name',
+            job_industry     varchar(255) null comment 'Industry type',
+            job_finance      varchar(255) null comment 'Financing status',
+            job_scale        varchar(255) null comment 'Company size',
+            job_welfare      varchar(255) null comment 'Company benefits',
+            job_salary_range varchar(255) null comment 'Salary range',
+            job_experience   varchar(255) null comment 'Work experience',
+            job_education    varchar(255) null comment 'Education requirement',
+            job_skills       varchar(255) null comment 'Skill requirements',
+            create_time      varchar(50)  null comment 'Crawl time'
+        )
+        """
+        self.cursor.execute(create_table_sql)
+        self.conn.commit()
+        print("Database and table created successfully!")
+
     def close(self):
         """
-        关闭数据库连接
+        Close database connection
         """
         self.cursor.close()
         self.conn.close()
@@ -103,36 +137,11 @@ class DBUtils:
 
 
 
-# 定义 main 函数
+# Define main function
 if __name__ == '__main__':
-    # 实例化 DBUtils
-    db = DBUtils('localhost', 'root', '123456', 'spring')
-
-    # 测试查询所有数据
-    """ret = db.select_all("select * from t_user")
-    for r in ret:
-        print(r)"""
-
-    # 测试查询前 n 条数据
-    """ret = db.select_n("select * from t_user", 3)
-    for r in ret:
-        print(r)"""
-
-    # 测试查询 1 条数据
-    """ret = db.select_one("select * from t_user where username = %s and password = %s", ['admin', 'admin'])
-    print(ret)"""
-
-    # 测试插入数据
-    """rows = db.insert_data("insert into t_user(username,password) values(%s,%s)", ['李玉梅', '000000'])
-    print(rows)"""
-
-    # 测试更新数据
-    """rows = db.update_data("update t_user set password = %s where username = %s", ['123456', '李玉'])
-    print(rows)"""
-
-    # 测试删除数据
-    """rows = db.delete_data("delete from t_user where username = %s", ['李玉梅'])
-    print(rows)"""
-
-    # 关闭数据库连接
+    # Instantiate DBUtils
+    db = DBUtils('localhost', 'root', '123456', 'mysql')  # First connect to mysql database
+    # Create database and table
+    db.create_database_and_table()
+    # Close database connection
     db.close()
