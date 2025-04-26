@@ -1,7 +1,7 @@
 #!/usr/bin/python3 python
 # encoding: utf-8
 '''
-@author: 孙昊
+@author: sunhao
 @contact: smartadpole@163.com
 @file: logging.py
 @time: 2025/4/27 00:14
