@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# -*- coding:utf-8 -*-
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 # @author  : jhzhong
 # @time    : 2023/12/22 8:23
 # @function: Parser for BOSS job listings information.
@@ -123,23 +123,23 @@ def extract_job_data(job):
 
     return job_data
 
-def process_job_listings(browser, current_category, sub_category, today, use_db=False, db_config=None):
+def parse_job_listings(browser, current_category, sub_category):
     """
-    Process job listings and save to database or CSV
+    Parse job listings from the page
 
     Args:
         browser (webdriver): Browser instance
         current_category (str): Main job category
         sub_category (str): Sub category of job
-        today (str): Current date string
-        use_db (bool): Whether to use database for storage
-        db_config (dict, optional): Database configuration if using database
+
+    Returns:
+        list: List of parsed job data tuples
     """
     job_detail = browser.find_elements(by=By.XPATH,
-                                       value='//*[@id="wrap"]/div[2]/div[2]/div/div[1]/div[2]/ul/li')
-
+                                     value='//*[@id="wrap"]/div[2]/div[2]/div/div[1]/div[2]/ul/li')
+    
+    parsed_data = []
     for job in job_detail:
-        db = None
         try:
             # Extract job information
             job_data = extract_job_data(job)
@@ -155,28 +155,17 @@ def process_job_listings(browser, current_category, sub_category, today, use_db=
                 current_category, sub_category, job_data['job_title'], province, job_data['job_location'],
                 job_data['job_company'], job_data['job_industry'], job_data['job_finance'],
                 job_data['job_scale'], job_data['job_welfare'], job_data['job_salary_range'],
-                job_data['job_experience'], job_data['job_education'], job_data['job_skills'], today
+                job_data['job_experience'], job_data['job_education'], job_data['job_skills'],
+                datetime.now().strftime('%Y-%m-%d')
             )
 
             # Log extracted data
-            print(f"extract: {job_data['job_title']} at {job_data['job_company']} in {city}")
-
-            # Save data either to database or CSV
-            if use_db and db_config:
-                from dbutils import DBUtils
-                db = DBUtils(db_config['host'], db_config['user'], db_config['password'], db_config['db'])
-                db.insert_data(
-                    "insert into job_info(category, sub_category,job_title,province,job_location,job_company,job_industry,"
-                    "job_finance,job_scale,job_welfare,job_salary_range,job_experience,job_education,job_skills,create_time) "
-                    "values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                    args=data_row)
-            else:
-                from boss_selenium import save_to_csv
-                save_to_csv(data_row)
+            print(f"Parsed: {job_data['job_title']} at {job_data['job_company']} in {city}")
+            
+            parsed_data.append(data_row)
 
         except Exception as e:
-            print(f"Error occurred while processing job: {e}")
-            traceback.print_exc()
-        finally:
-            if db:
-                db.close() 
+            print(f"Error parsing job data: {str(e)}", level="ERROR")
+            continue
+            
+    return parsed_data 

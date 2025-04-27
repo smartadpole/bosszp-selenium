@@ -9,3 +9,5 @@ paper*
 *.db
 *.csv
 result/
+*output*/
+

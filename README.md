@@ -7,14 +7,13 @@
 - 支持多种浏览器（Chrome/Edge/Firefox）
 - 自动处理浏览器驱动
 - 智能等待和重试机制
-- 数据持久化存储
+- 数据持久化存储（CSV格式）
 - 详细的日志记录
 
 ## 环境要求
 
 - Python 3.8+
 - Chrome/Edge/Firefox 浏览器
-- MySQL 数据库
 
 ## 快速开始
 
@@ -23,14 +22,7 @@
 pip install -r requirements.txt
 ```
 
-2. 配置数据库：
-```bash
-# 创建数据库
-mysql -u root -p
-CREATE DATABASE bosszp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-3. 运行程序：
+2. 运行程序：
 ```bash
 # 基本运行（使用默认配置）
 python boss_selenium.py
@@ -45,14 +37,36 @@ python boss_selenium.py --headless
 python boss_selenium.py --output-dir result
 ```
 
+## 数据保存
+
+程序会自动将采集到的数据保存为CSV文件，默认保存在 `./result` 目录下，文件名为 `job_data_YYYYMMDD.csv`。
+
+### 数据格式
+CSV文件包含以下字段：
+- 职位名称
+- 公司名称
+- 工作地点
+- 薪资范围
+- 工作经验要求
+- 学历要求
+- 公司规模
+- 公司行业
+- 职位描述
+- 发布时间
+
+### 示例数据
+```csv
+职位名称,公司名称,工作地点,薪资范围,工作经验要求,学历要求,公司规模,公司行业,职位描述,发布时间
+Python开发工程师,XX科技有限公司,北京,15k-30k,3-5年,本科,100-499人,互联网,负责Python后端开发...,2024-03-20
+```
+
 ## 参数说明
 
 | 参数           | 说明           | 默认值      |
 |--------------|--------------|----------|
 | --browser    | 指定浏览器类型      | chrome   |
 | --headless   | 是否使用无头模式     | False    |
-| --output-dir | 输出目录 | ./result |
-
+| --output-dir | 输出目录        | ./result |
 
 ## 项目结构
 
@@ -74,8 +88,7 @@ python boss_selenium.py --output-dir result
 
 1. 确保已安装所需浏览器（chrome、edge、firefox 其中之一）
 2. 确保网络连接正常
-3. 数据库连接信息需要正确配置
-4. 注意遵守网站的使用条款
+3. 注意遵守网站的使用条款
 
 ## 许可证
 
