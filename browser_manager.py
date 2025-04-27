@@ -128,7 +128,7 @@ class BrowserManager:
             print(f"Failed to get {browser_type} driver: {e}", level="ERROR")
             return None
 
-    def init_browser(self, browser_type):
+    def init_browser(self, browser_type, headless=False):
         """
         Initialize browser with appropriate driver
 
@@ -146,6 +146,8 @@ class BrowserManager:
             options = config['options_class']()
             for arg in COMMON_BROWSER_ARGS:
                 options.add_argument(arg)
+            if headless:
+                options.add_argument('--headless')
 
             driver_path = self.get_driver_path(browser_type)
             service = config['service_class'](driver_path)
@@ -155,7 +157,7 @@ class BrowserManager:
             print(f"Failed to initialize {browser_type} browser: {e}", level="ERROR")
             return None
 
-    def get_available_browser(self):
+    def get_available_browser(self, headless=False):
         """
         Try to initialize any available browser
 
@@ -167,7 +169,7 @@ class BrowserManager:
             version = self.get_browser_version(browser_type)
             if version:
                 print(f"Detected {browser_type} version: {version}")
-                browser = self.init_browser(browser_type)
+                browser = self.init_browser(browser_type, headless)
                 if browser:
                     print(f"Successfully initialized {browser_type} browser")
                     return browser
@@ -175,7 +177,7 @@ class BrowserManager:
         print("no available browser", level="ERROR")
         return None
 
-def get_browser(driver_type=None):
+def get_browser(driver_type=None, headless=False):
     """
     Get a browser instance with automatic driver management
 
@@ -194,10 +196,10 @@ def get_browser(driver_type=None):
             return None
 
         print(f"Initializing {driver_type} browser...")
-        return manager.init_browser(driver_type)
+        return manager.init_browser(driver_type, headless)
 
     # If no browser type specified, try all available browsers
-    return manager.get_available_browser()
+    return manager.get_available_browser(headless=headless)
 
 
 def show_browser(browser):
@@ -214,7 +216,7 @@ def show_browser(browser):
 
 if __name__ == '__main__':
     # Test browser initialization and open Bing homepage
-    browser = get_browser()
+    browser = get_browser(headless=True)
     if browser:
         print("Browser initialized successfully")
         show_browser(browser)

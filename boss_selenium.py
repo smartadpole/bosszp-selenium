@@ -185,10 +185,11 @@ if __name__ == '__main__':
     os.makedirs(args.output_dir, exist_ok=True)
     BACKUP_CSV_FILE = os.path.join(args.output_dir, "job_listings_backup.csv")
     PROCESS_FILE = os.path.join(args.output_dir, "crawl_progress.txt")
+    loger.init_logger(args.output_dir)
 
     use_database = setup_database()
     
-    browser = get_browser(args.driver_type)
+    browser = get_browser(args.driver_type, args.headless)
     if not browser:
         print("Failed to initialize browser. Exiting...", level="ERROR")
         sys.exit(1)
