@@ -11,6 +11,12 @@ import csv
 from datetime import datetime
 import loger
 
+HEADERS = [
+    'category', 'sub_category', 'job_title', 'province', 'job_location',
+    'job_company', 'job_experience', 'job_education', 'job_skills',
+    'job_address', 'job_salary', 'job_desc', 'create_time'
+]
+
 class CSVHandler:
     def __init__(self, output_dir):
         """
@@ -27,14 +33,9 @@ class CSVHandler:
     def _ensure_csv_exists(self):
         """Ensure CSV file exists with headers"""
         if not os.path.exists(self.csv_file):
-            headers = [
-                'category', 'sub_category', 'job_title', 'province', 'job_location',
-                'job_company', 'job_experience', 'job_education', 'job_skills',
-                'job_address', 'job_salary', 'job_desc', 'create_time'
-            ]
             with open(self.csv_file, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                writer.writerow(headers)
+                writer.writerow(HEADERS)
 
     def select_all(self, sql=None, args=None):
         """
@@ -119,12 +120,18 @@ class CSVHandler:
         Insert a job listing into CSV
         
         Args:
-            data_row (tuple): Data row to insert
+            data_row (dict): Data row to insert
             
         Returns:
             int: Number of records inserted
         """
-        return self.insert_data(args=data_row)
+        if isinstance(data_row, dict):
+            # Convert dictionary to tuple in the correct order, with default empty string for missing fields
+            data = [data_row.get(k, "") for k in HEADERS]
+            data_tuple = tuple(data)
+        else:
+            data_tuple = data_row
+        return self.insert_data(args=data_tuple)
 
     def update_data(self, sql=None, args=None):
         """
@@ -173,14 +180,24 @@ class CSVHandler:
         Save multiple data rows to CSV
         
         Args:
-            data_rows (list): List of data rows to save
+            data_rows (list): List of data rows to save (can be dict or tuple)
         """
         try:
+            # Convert all rows to tuples if they are dictionaries
+            converted_rows = []
+            for row in data_rows:
+                if isinstance(row, dict):
+                    # Use current time as default for create_time if not provided
+                    converted_row = [row.get(k, "") for k in HEADERS]
+                    converted_rows.append(converted_row)
+                else:
+                    converted_rows.append(row)
+
             with open(self.csv_file, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                for row in data_rows:
+                for row in converted_rows:
                     writer.writerow(row)
-            print(f"Successfully saved {len(data_rows)} records to CSV")
+            print(f"Successfully saved {len(converted_rows)} records to CSV")
         except Exception as e:
             print(f"Error saving data to CSV: {str(e)}", level="ERROR")
             raise

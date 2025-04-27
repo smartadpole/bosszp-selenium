@@ -8,6 +8,32 @@
 
 import pymysql
 import loger
+from datetime import datetime
+
+# 定义表列信息
+JOB_INFO_COLUMNS = [
+    ('category', 'VARCHAR(255)', 'Primary category'),
+    ('sub_category', 'VARCHAR(255)', 'Secondary category'),
+    ('job_title', 'VARCHAR(255)', 'Job title'),
+    ('province', 'VARCHAR(100)', 'Province'),
+    ('job_location', 'VARCHAR(255)', 'Job location'),
+    ('job_company', 'VARCHAR(255)', 'Company name'),
+    ('job_industry', 'VARCHAR(255)', 'Industry type'),
+    ('job_finance', 'VARCHAR(255)', 'Financing status'),
+    ('job_scale', 'VARCHAR(255)', 'Company size'),
+    ('job_welfare', 'VARCHAR(255)', 'Company benefits'),
+    ('job_salary_range', 'VARCHAR(255)', 'Salary range'),
+    ('job_experience', 'VARCHAR(255)', 'Work experience'),
+    ('job_education', 'VARCHAR(255)', 'Education requirement'),
+    ('job_skills', 'VARCHAR(255)', 'Skill requirements'),
+    ('job_address', 'VARCHAR(255)', 'Job address'),
+    ('job_salary', 'VARCHAR(255)', 'Salary'),
+    ('job_desc', 'TEXT', 'Job description'),
+    ('create_time', 'VARCHAR(50)', 'Crawl time')
+]
+
+# 获取列名列表
+COLUMN_NAMES = [col[0] for col in JOB_INFO_COLUMNS]
 
 class MySQLHandler:
     def __init__(self, host, user, password, database, port=3306, charset='utf8mb4'):
@@ -56,27 +82,10 @@ class MySQLHandler:
             self.cursor.execute("USE spider_db")
             
             # Create table
-            create_table_sql = """
+            create_table_sql = f"""
             CREATE TABLE IF NOT EXISTS job_info (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                category VARCHAR(255) NULL COMMENT 'Primary category',
-                sub_category VARCHAR(255) NULL COMMENT 'Secondary category',
-                job_title VARCHAR(255) NULL COMMENT 'Job title',
-                province VARCHAR(100) NULL COMMENT 'Province',
-                job_location VARCHAR(255) NULL COMMENT 'Job location',
-                job_company VARCHAR(255) NULL COMMENT 'Company name',
-                job_industry VARCHAR(255) NULL COMMENT 'Industry type',
-                job_finance VARCHAR(255) NULL COMMENT 'Financing status',
-                job_scale VARCHAR(255) NULL COMMENT 'Company size',
-                job_welfare VARCHAR(255) NULL COMMENT 'Company benefits',
-                job_salary_range VARCHAR(255) NULL COMMENT 'Salary range',
-                job_experience VARCHAR(255) NULL COMMENT 'Work experience',
-                job_education VARCHAR(255) NULL COMMENT 'Education requirement',
-                job_skills VARCHAR(255) NULL COMMENT 'Skill requirements',
-                job_address VARCHAR(255) NULL COMMENT 'Job address',
-                job_salary VARCHAR(255) NULL COMMENT 'Salary',
-                job_desc TEXT NULL COMMENT 'Job description',
-                create_time VARCHAR(50) NULL COMMENT 'Crawl time',
+                {', '.join([f"{col[0]} {col[1]} NULL COMMENT '{col[2]}'" for col in JOB_INFO_COLUMNS])},
                 INDEX idx_category (category),
                 INDEX idx_job_title (job_title),
                 INDEX idx_job_company (job_company)
@@ -115,40 +124,53 @@ class MySQLHandler:
         Insert a job listing into the database
         
         Args:
-            data_row (tuple): Data row to insert
+            data_row (dict): Data row to insert
             
         Returns:
             int: Number of affected rows
         """
-        sql = """
-        INSERT INTO job_info(
-            category, sub_category, job_title, province, job_location,
-            job_company, job_industry, job_finance, job_scale, job_welfare,
-            job_salary_range, job_experience, job_education, job_skills, job_address,
-            job_salary, job_desc, create_time
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        return self.insert_data(sql, data_row)
+        if isinstance(data_row, dict):
+            # Convert dictionary to tuple using column names
+            current_time = datetime.now().strftime('%Y-%m-%d')
+            data_tuple = tuple(data_row.get(col, '') for col in COLUMN_NAMES[:-1]) + (data_row.get('create_time', current_time),)
+        else:
+            data_tuple = data_row
+
+        # Generate SQL using column names
+        columns = ', '.join(COLUMN_NAMES)
+        placeholders = ', '.join(['%s'] * len(COLUMN_NAMES))
+        sql = f"INSERT INTO job_info({columns}) VALUES ({placeholders})"
+        
+        return self.insert_data(sql, data_tuple)
 
     def save_data(self, data_rows):
         """
         Save multiple data rows to database
         
         Args:
-            data_rows (list): List of data rows to save
+            data_rows (list): List of data rows to save (can be dict or tuple)
         """
         try:
-            sql = """
-            INSERT INTO job_info(
-                category, sub_category, job_title, province, job_location,
-                job_company, job_industry, job_finance, job_scale, job_welfare,
-                job_salary_range, job_experience, job_education, job_skills, job_address,
-                job_salary, job_desc, create_time
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            self.cursor.executemany(sql, data_rows)
+            # Convert all rows to tuples if they are dictionaries
+            converted_rows = []
+            current_time = datetime.now().strftime('%Y-%m-%d')
+            
+            for row in data_rows:
+                if isinstance(row, dict):
+                    # Convert dictionary to tuple using column names
+                    converted_row = tuple(row.get(col, '') for col in COLUMN_NAMES[:-1]) + (row.get('create_time', current_time),)
+                    converted_rows.append(converted_row)
+                else:
+                    converted_rows.append(row)
+
+            # Generate SQL using column names
+            columns = ', '.join(COLUMN_NAMES)
+            placeholders = ', '.join(['%s'] * len(COLUMN_NAMES))
+            sql = f"INSERT INTO job_info({columns}) VALUES ({placeholders})"
+            
+            self.cursor.executemany(sql, converted_rows)
             self.conn.commit()
-            print(f"Successfully saved {len(data_rows)} records to MySQL")
+            print(f"Successfully saved {len(converted_rows)} records to MySQL")
         except Exception as e:
             self.conn.rollback()
             print(f"Error saving data to MySQL: {str(e)}", level="ERROR")

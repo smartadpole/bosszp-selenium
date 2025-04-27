@@ -8,5 +8,6 @@
 
 from .mysql_handler import MySQLHandler
 from .csv_handler import CSVHandler
+from .data_storage import DataStorage, init_storage
 
 __all__ = ['MySQLHandler', 'CSVHandler'] 

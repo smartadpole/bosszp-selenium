@@ -5,7 +5,6 @@
 # @function: Main script for BOSS job listings crawler.
 
 import os
-import sys
 import time
 import argparse
 from datetime import datetime
@@ -15,8 +14,6 @@ from database.data_storage import init_storage
 from boss_parser import parse_job_listings
 from browser_manager import get_browser
 import random
-
-from loger import DEFAULT_OUTPUT_DIR
 
 BACKUP_CSV_FILE = os.path.join("job_listings_backup.csv")
 PROCESS_FILE = os.path.join("crawl_progress.txt")
@@ -42,7 +39,7 @@ def parse_arguments():
 def scrape_job_listings(browser, storage, csv_file):
     """
     Scrape job listings from BOSS website
-    
+
     Args:
         browser (webdriver): Browser instance
         storage: Data storage instance (MySQL or CSV)
@@ -52,26 +49,31 @@ def scrape_job_listings(browser, storage, csv_file):
     index_url = 'https://www.zhipin.com/?city=100010000&ka=city-sites-100010000'
     browser.get(index_url)
     print("Successfully accessed BOSS website")
-    
+
     # Wait for manual verification
-    print("Please complete the manual verification if required...", level="W")
-    time.sleep(15)  # Wait for 30 seconds to allow manual verification
+    print("Please complete the manual verification if required...", level="WARNING")
+    time.sleep(15)  # Wait for 15 seconds to allow manual verification
 
     # Simulate clicking Internet/AI to show job categories
     show_ele = browser.find_element(by=By.XPATH, value='//div[contains(@class, "job-menu")]//b')
     show_ele.click()
 
-    for i in range(85):
+    # Get all category elements
+    category_elements = browser.find_elements(by=By.XPATH, value='//div[contains(@class, "job-menu")]//div/a')
+    total_categories = len(category_elements)
+    print(f"Found {total_categories} categories to process")
+
+    for i in range(total_categories):
         try:
             print(f"Processing category index {i}")
-            
-            current_a = browser.find_elements(by=By.XPATH, value='//div[contains(@class, "job-menu")]//div/a')[i]
+
+            current_a = category_elements[i]
             current_category = current_a.find_element(by=By.XPATH, value='../../h4').text
             sub_category = current_a.text
             print(f"Scraping {current_category}--{sub_category}")
-            
+
             # Click on the category
-            browser.find_elements(by=By.XPATH, value='//div[contains(@class, "job-menu")]//div/a')[i].click()
+            current_a.click()
 
             # Scroll page to load all content
             browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -80,7 +82,7 @@ def scrape_job_listings(browser, storage, csv_file):
 
             # Parse job listings
             parsed_data = parse_job_listings(browser, current_category, sub_category)
-            
+
             if parsed_data:
                 try:
                     # Try to save to primary storage
@@ -97,18 +99,23 @@ def scrape_job_listings(browser, storage, csv_file):
                 # Simulate clicking Internet/AI to show job categories
                 show_ele = browser.find_element(by=By.XPATH, value='//div[contains(@class, "job-menu")]//b')
                 show_ele.click()
+                # Refresh category elements after going back
+                category_elements = browser.find_elements(by=By.XPATH, value='//div[contains(@class, "job-menu")]//div/a')
             except:
                 browser.get(index_url)
                 # Wait for manual verification again if needed
-                print("Please complete the manual verification if required...")
-                time.sleep(15)  # Wait for 30 seconds to allow manual verification
+                print("Please complete the manual verification if required...", level="WARNING")
+                time.sleep(15)  # Wait for 15 seconds to allow manual verification
                 # Simulate clicking Internet/AI to show job categories
                 show_ele = browser.find_element(by=By.XPATH, value='//div[contains(@class, "job-menu")]//b')
                 show_ele.click()
+                # Refresh category elements after reloading
+                category_elements = browser.find_elements(by=By.XPATH, value='//div[contains(@class, "job-menu")]//div/a')
 
         except Exception as e:
             print(f"Error processing category {i}: {str(e)}", level="ERROR")
             continue
+
 
 def main():
     args = parse_arguments()
@@ -141,6 +148,7 @@ def main():
         if storage:
             storage.close()
         print("Crawling completed")
+
 
 if __name__ == "__main__":
     main()
