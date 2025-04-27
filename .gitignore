@@ -6,4 +6,6 @@ paper/
 paper*
 *pdf
 *.log
-
+*.db
+*.csv
+result/

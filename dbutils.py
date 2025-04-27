@@ -14,7 +14,7 @@
     - Method 6(delete_data): Delete data
 """
 import pymysql
-
+import loger
 
 class DBUtils:
     def __init__(self, host, user, password, db, port=3306, charset='utf8'):
