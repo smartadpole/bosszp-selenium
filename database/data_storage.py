@@ -1,7 +1,9 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
-# @author  : jhzhong
-# @time    : 2023/12/22 8:23
+# encoding: utf-8
+# @author: sunhao
+# @contact: smartadpole@163.com
+# @file: logging.py
+# @time: 2025/4/27 10:30
 # @function: Data storage module for job listings.
 
 import os
@@ -135,4 +137,36 @@ class DataStorage:
             return self.handler.delete_data(sql, args)
         except Exception as e:
             print(f"Error deleting data: {str(e)}", level="ERROR")
-            raise 
+            raise
+
+def init_storage(output_dir):
+    """
+    Initialize data storage (MySQL or CSV)
+
+    Args:
+        output_dir (str): Directory for output files
+
+    Returns:
+        storage: Initialized storage instance
+    """
+    storage = None
+    try:
+        # Try to connect to MySQL
+        db = MySQLHandler(
+            host='localhost',
+            user='root',
+            password='123456',
+            database='spider_db'
+        )
+        db.create_database_and_table()
+        storage = db
+        print("Successfully connected to MySQL database")
+    except Exception as e:
+        # Fallback to CSV storage if MySQL connection fails
+        print(f"MySQL connection failed: {str(e)}", level="WARNING")
+        print("Switching to CSV storage mode", level="WARNING")
+        storage = CSVHandler(output_dir)
+        storage.create_database_and_table()
+        print("Successfully initialized CSV storage")
+
+    return storage

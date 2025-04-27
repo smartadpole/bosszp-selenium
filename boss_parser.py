@@ -4,7 +4,7 @@
 # @time    : 2023/12/22 8:23
 # @function: Parser for BOSS job listings information.
 
-import datetime
+from datetime import datetime
 import time
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
@@ -82,46 +82,58 @@ def extract_job_data(job):
     Extract job data from a job listing element
 
     Args:
-        job (WebElement): Job listing web element
+        job (WebElement): Job listing element
 
     Returns:
-        dict: Dictionary of job details or None if critical data is missing
+        dict: Extracted job data or None if critical data is missing
     """
     try:
-        job_title = job.find_element(by=By.XPATH, value="./div[1]/a/div[1]/span[1]").text.strip()
-    except:
+        # Update XPath paths to match actual HTML structure
+        job_title = job.find_element(by=By.XPATH, value='.//span[@class="job-name"]').text
+        job_salary = job.find_element(by=By.XPATH, value='.//span[@class="job-salary"]').text
+        job_location = job.find_element(by=By.XPATH, value='.//ul[@class="tag-list"]/li[1]/a').text
+        job_experience = job.find_element(by=By.XPATH, value='.//ul[@class="tag-list"]/li[2]').text
+        job_education = job.find_element(by=By.XPATH, value='.//ul[@class="tag-list"]/li[3]').text
+        
+        # Company information
+        job_company = job.find_element(by=By.XPATH, value='.//div[@class="boss-info-attr"]').text.split('·')[0].strip()
+        
+        # Job description and requirements
+        job_desc = job.find_element(by=By.XPATH, value='.//p[@class="desc"]').text
+        
+        # Job skills/tags
+        job_skills = []
+        skill_elements = job.find_elements(by=By.XPATH, value='.//ul[@class="job-label-list"]/li')
+        for skill in skill_elements:
+            job_skills.append(skill.text)
+        job_skills = ','.join(job_skills)
+
+        # Job address
+        try:
+            job_address = job.find_element(by=By.XPATH, value='.//p[@class="job-address-desc"]').text
+        except:
+            job_address = ""
+
+        # Check if required fields are empty
+        if not all([job_title, job_salary, job_location, job_company, job_experience, job_education]):
+            return None
+
+        # Return data in the correct order for storage
+        return (
+            job_title,
+            job_salary,
+            job_location,
+            job_company,
+            job_experience,
+            job_education,
+            job_desc,
+            job_skills,
+            job_address
+        )
+
+    except Exception as e:
+        print(f"Error extracting job data: {str(e)}", level="ERROR")
         return None
-
-    # Extract all job details
-    job_data = {
-        'job_title': job_title,
-        'job_location': job.find_element(by=By.XPATH, value="./div[1]/a/div[1]/span[2]/span").text.strip(),
-        'job_company': job.find_element(by=By.XPATH, value="./div[1]/div/div[2]/h3/a").text.strip(),
-        'job_industry': job.find_element(by=By.XPATH, value="./div[1]/div/div[2]/ul/li[1]").text.strip(),
-        'job_finance': job.find_element(by=By.XPATH, value="./div[1]/div/div[2]/ul/li[2]").text.strip(),
-        'job_salary_range': job.find_element(by=By.XPATH, value="./div[1]/a/div[2]/span[1]").text.strip(),
-        'job_experience': job.find_element(by=By.XPATH, value="./div[1]/a/div[2]/ul/li[1]").text.strip(),
-        'job_education': job.find_element(by=By.XPATH, value="./div[1]/a/div[2]/ul/li[2]").text.strip(),
-    }
-
-    # Extract optional fields with fallbacks
-    try:
-        job_data['job_scale'] = job.find_element(by=By.XPATH, value="./div[1]/div/div[2]/ul/li[3]").text.strip()
-    except:
-        job_data['job_scale'] = "None"
-
-    try:
-        job_data['job_welfare'] = job.find_element(by=By.XPATH, value="./div[2]/div").text.strip()
-    except:
-        job_data['job_welfare'] = 'None'
-
-    try:
-        job_data['job_skills'] = ','.join(
-            [skill.text.strip() for skill in job.find_elements(by=By.XPATH, value="./div[2]/ul/li")])
-    except:
-        job_data['job_skills'] = 'None'
-
-    return job_data
 
 def parse_job_listings(browser, current_category, sub_category):
     """
@@ -135,8 +147,7 @@ def parse_job_listings(browser, current_category, sub_category):
     Returns:
         list: List of parsed job data tuples
     """
-    job_detail = browser.find_elements(by=By.XPATH,
-                                     value='//*[@id="wrap"]/div[2]/div[2]/div/div[1]/div[2]/ul/li')
+    job_detail = browser.find_elements(by=By.XPATH, value='//div[contains(@class, "job-detail-box")]')
     
     parsed_data = []
     for job in job_detail:
@@ -147,20 +158,33 @@ def parse_job_listings(browser, current_category, sub_category):
                 continue
 
             # Find province based on city
-            city = job_data['job_location'].split('·')[0]
+            city = job_data[2].split('·')[0]  # job_location
             province = get_province_by_city(city, CITY_MAP)
 
-            # Prepare data row
+            # Prepare data row with all fields
             data_row = (
-                current_category, sub_category, job_data['job_title'], province, job_data['job_location'],
-                job_data['job_company'], job_data['job_industry'], job_data['job_finance'],
-                job_data['job_scale'], job_data['job_welfare'], job_data['job_salary_range'],
-                job_data['job_experience'], job_data['job_education'], job_data['job_skills'],
-                datetime.now().strftime('%Y-%m-%d')
+                current_category,  # category
+                sub_category,      # sub_category
+                job_data[0],       # job_title
+                province,          # province
+                job_data[2],       # job_location
+                job_data[3],       # job_company
+                None,              # job_industry (not available in current parsing)
+                None,              # job_finance (not available in current parsing)
+                None,              # job_scale (not available in current parsing)
+                None,              # job_welfare (not available in current parsing)
+                None,              # job_salary_range (not available in current parsing)
+                job_data[4],       # job_experience
+                job_data[5],       # job_education
+                job_data[7],       # job_skills
+                job_data[8],       # job_address
+                job_data[1],       # job_salary
+                job_data[6],       # job_desc
+                datetime.now().strftime('%Y-%m-%d')  # create_time
             )
 
             # Log extracted data
-            print(f"Parsed: {job_data['job_title']} at {job_data['job_company']} in {city}")
+            print(f"Parsed: {job_data[0]} at {job_data[3]} in {city}")
             
             parsed_data.append(data_row)
 

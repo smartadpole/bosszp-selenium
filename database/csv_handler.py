@@ -1,7 +1,9 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
-# @author  : jhzhong
-# @time    : 2023/12/22 8:23
+# encoding: utf-8
+# @author: sunhao
+# @contact: smartadpole@163.com
+# @file: logging.py
+# @time: 2025/4/27 10:30
 # @function: CSV handler for job listings.
 
 import os
@@ -27,8 +29,8 @@ class CSVHandler:
         if not os.path.exists(self.csv_file):
             headers = [
                 'category', 'sub_category', 'job_title', 'province', 'job_location',
-                'job_company', 'job_industry', 'job_finance', 'job_scale', 'job_welfare',
-                'job_salary_range', 'job_experience', 'job_education', 'job_skills', 'create_time'
+                'job_company', 'job_experience', 'job_education', 'job_skills',
+                'job_address', 'job_salary', 'job_desc', 'create_time'
             ]
             with open(self.csv_file, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)

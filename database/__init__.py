@@ -1,7 +1,9 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
-# @author  : jhzhong
-# @time    : 2023/12/22 8:23
+# encoding: utf-8
+# @author: sunhao
+# @contact: smartadpole@163.com
+# @file: logging.py
+# @time: 2025/4/27 10:30
 # @function: Database package initialization.
 
 from .mysql_handler import MySQLHandler

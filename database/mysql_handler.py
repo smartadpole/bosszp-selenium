@@ -1,7 +1,9 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
-# @author  : jhzhong
-# @time    : 2023/12/22 8:23
+# encoding: utf-8
+# @author: sunhao
+# @contact: smartadpole@163.com
+# @file: logging.py
+# @time: 2025/4/27 10:30
 # @function: MySQL database handler for job listings.
 
 import pymysql
@@ -20,15 +22,31 @@ class MySQLHandler:
             port (int): Database port
             charset (str): Database charset
         """
-        self.conn = pymysql.connect(
-            host=host,
-            user=user,
-            password=password,
-            database=database,
-            port=port,
-            charset=charset
-        )
-        self.cursor = self.conn.cursor(pymysql.cursors.DictCursor)
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
+        self.port = port
+        self.charset = charset
+        self.conn = None
+        self.cursor = None
+        self.connect()
+
+    def connect(self):
+        """Connect to database"""
+        try:
+            self.conn = pymysql.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database,
+                port=self.port,
+                charset=self.charset
+            )
+            self.cursor = self.conn.cursor(pymysql.cursors.DictCursor)
+        except Exception as e:
+            print(f"Error connecting to database: {str(e)}", level="WARNING")
+            raise
 
     def create_database_and_table(self):
         """Create database and table if not exists"""
@@ -55,6 +73,9 @@ class MySQLHandler:
                 job_experience VARCHAR(255) NULL COMMENT 'Work experience',
                 job_education VARCHAR(255) NULL COMMENT 'Education requirement',
                 job_skills VARCHAR(255) NULL COMMENT 'Skill requirements',
+                job_address VARCHAR(255) NULL COMMENT 'Job address',
+                job_salary VARCHAR(255) NULL COMMENT 'Salary',
+                job_desc TEXT NULL COMMENT 'Job description',
                 create_time VARCHAR(50) NULL COMMENT 'Crawl time',
                 INDEX idx_category (category),
                 INDEX idx_job_title (job_title),
@@ -103,15 +124,42 @@ class MySQLHandler:
         INSERT INTO job_info(
             category, sub_category, job_title, province, job_location,
             job_company, job_industry, job_finance, job_scale, job_welfare,
-            job_salary_range, job_experience, job_education, job_skills, create_time
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            job_salary_range, job_experience, job_education, job_skills, job_address,
+            job_salary, job_desc, create_time
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         return self.insert_data(sql, data_row)
 
+    def save_data(self, data_rows):
+        """
+        Save multiple data rows to database
+        
+        Args:
+            data_rows (list): List of data rows to save
+        """
+        try:
+            sql = """
+            INSERT INTO job_info(
+                category, sub_category, job_title, province, job_location,
+                job_company, job_industry, job_finance, job_scale, job_welfare,
+                job_salary_range, job_experience, job_education, job_skills, job_address,
+                job_salary, job_desc, create_time
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            self.cursor.executemany(sql, data_rows)
+            self.conn.commit()
+            print(f"Successfully saved {len(data_rows)} records to MySQL")
+        except Exception as e:
+            self.conn.rollback()
+            print(f"Error saving data to MySQL: {str(e)}", level="ERROR")
+            raise
+
     def close(self):
         """Close database connection"""
-        self.cursor.close()
-        self.conn.close()
+        if self.cursor:
+            self.cursor.close()
+        if self.conn:
+            self.conn.close()
 
     def select_all(self, sql, args=None):
         """

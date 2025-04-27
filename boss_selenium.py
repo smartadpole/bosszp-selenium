@@ -11,10 +11,33 @@ import argparse
 from datetime import datetime
 from selenium.webdriver.common.by import By
 import loger
-from database.mysql_handler import MySQLHandler
-from database.csv_handler import CSVHandler
+from database.data_storage import init_storage
 from boss_parser import parse_job_listings
 from browser_manager import get_browser
+import random
+
+from loger import DEFAULT_OUTPUT_DIR
+
+BACKUP_CSV_FILE = os.path.join("job_listings_backup.csv")
+PROCESS_FILE = os.path.join("crawl_progress.txt")
+DEFAULT_OUTPUT_DIR = "result"
+
+def parse_arguments():
+    """
+    Parse command line arguments
+
+    Returns:
+        argparse.Namespace: Parsed arguments
+    """
+    parser = argparse.ArgumentParser(description='BOSS job listing scraper')
+    parser.add_argument('--driver-type', type=str, default=None,
+                        choices=['chrome', 'edge', 'firefox'],
+                        help='Specific type of browser driver to use (optional)')
+    parser.add_argument('--output-dir', type=str, default=DEFAULT_OUTPUT_DIR,
+                        help='Directory to save output files (default: current directory)')
+    parser.add_argument('--headless', action='store_true',
+                        help='Run browser in headless mode (no GUI)')
+    return parser.parse_args()
 
 def scrape_job_listings(browser, storage, csv_file):
     """
@@ -29,26 +52,30 @@ def scrape_job_listings(browser, storage, csv_file):
     index_url = 'https://www.zhipin.com/?city=100010000&ka=city-sites-100010000'
     browser.get(index_url)
     print("Successfully accessed BOSS website")
+    
+    # Wait for manual verification
+    print("Please complete the manual verification if required...", level="W")
+    time.sleep(15)  # Wait for 30 seconds to allow manual verification
 
     # Simulate clicking Internet/AI to show job categories
-    show_ele = browser.find_element(by=By.XPATH, value='//*[@id="main"]/div/div[1]/div/div[1]/dl[1]/dd/b')
+    show_ele = browser.find_element(by=By.XPATH, value='//div[contains(@class, "job-menu")]//b')
     show_ele.click()
 
     for i in range(85):
         try:
             print(f"Processing category index {i}")
             
-            current_a = browser.find_elements(by=By.XPATH, value='//*[@id="main"]/div/div[1]/div/div[1]/dl[1]/div/ul/li/div/a')[i]
+            current_a = browser.find_elements(by=By.XPATH, value='//div[contains(@class, "job-menu")]//div/a')[i]
             current_category = current_a.find_element(by=By.XPATH, value='../../h4').text
             sub_category = current_a.text
             print(f"Scraping {current_category}--{sub_category}")
             
             # Click on the category
-            browser.find_elements(by=By.XPATH, value='//*[@id="main"]/div/div[1]/div/div[1]/dl[1]/div/ul/li/div/a')[i].click()
+            browser.find_elements(by=By.XPATH, value='//div[contains(@class, "job-menu")]//div/a')[i].click()
 
             # Scroll page to load all content
             browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(10)
+            time.sleep(random.uniform(5, 15))
             browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
             # Parse job listings
@@ -57,26 +84,26 @@ def scrape_job_listings(browser, storage, csv_file):
             if parsed_data:
                 try:
                     # Try to save to primary storage
-                    for data_row in parsed_data:
-                        storage.insert_job_listing(data_row)
+                    storage.save_data(parsed_data)
                 except Exception as e:
                     # If primary storage fails, save to CSV
                     print(f"Primary storage failed: {str(e)}", level="ERROR")
                     print("Falling back to CSV storage")
-                    csv_storage = CSVHandler(os.path.dirname(csv_file))
-                    csv_storage.save_data(parsed_data)
-                    csv_storage.close()
+                    storage.close()
 
             try:
                 # Return to homepage
                 browser.back()
                 # Simulate clicking Internet/AI to show job categories
-                show_ele = browser.find_element(by=By.XPATH, value='//*[@id="main"]/div/div[1]/div/div[1]/dl[1]/dd/b')
+                show_ele = browser.find_element(by=By.XPATH, value='//div[contains(@class, "job-menu")]//b')
                 show_ele.click()
             except:
                 browser.get(index_url)
+                # Wait for manual verification again if needed
+                print("Please complete the manual verification if required...")
+                time.sleep(15)  # Wait for 30 seconds to allow manual verification
                 # Simulate clicking Internet/AI to show job categories
-                show_ele = browser.find_element(by=By.XPATH, value='//*[@id="main"]/div/div[1]/div/div[1]/dl[1]/dd/b')
+                show_ele = browser.find_element(by=By.XPATH, value='//div[contains(@class, "job-menu")]//b')
                 show_ele.click()
 
         except Exception as e:
@@ -84,39 +111,15 @@ def scrape_job_listings(browser, storage, csv_file):
             continue
 
 def main():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='BOSS job listings crawler')
-    parser.add_argument('--driver-type', choices=['chrome', 'edge', 'firefox'], 
-                       default='chrome', help='Browser type')
-    args = parser.parse_args()
+    args = parse_arguments()
 
     # Initialize logger
-    output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output')
+    output_dir = args.output_dir if args.output_dir else os.path.join(os.getcwd(), DEFAULT_OUTPUT_DIR)
     loger.init_logger(output_dir)
-    
-    # Create output directory
     os.makedirs(output_dir, exist_ok=True)
-    
+
     # Initialize data storage
-    storage = None
-    try:
-        # Try to connect to MySQL
-        db = MySQLHandler(
-            host='localhost',
-            user='root',
-            password='123456',
-            database='spider_db'
-        )
-        db.create_database_and_table()
-        storage = db
-        print("Successfully connected to MySQL database")
-    except Exception as e:
-        # Fallback to CSV storage if MySQL connection fails
-        print(f"MySQL connection failed: {str(e)}", level="ERROR")
-        print("Switching to CSV storage mode")
-        storage = CSVHandler(output_dir)
-        storage.create_database_and_table()
-        print("Successfully initialized CSV storage")
+    storage = init_storage(output_dir)
 
     try:
         # Initialize browser
