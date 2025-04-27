@@ -1,95 +1,100 @@
-# Boss直聘数据采集工具
+# BOSS 直聘爬虫工具
 
-这是一个基于 Selenium 的 Boss直聘数据采集工具，可以自动采集职位信息并保存到数据库。
+## 功能说明
 
-## 功能特点
+本工具包含两个主要爬虫：
 
-- 支持多种浏览器（Chrome/Edge/Firefox）
-- 自动处理浏览器驱动
-- 智能等待和重试机制
-- 数据持久化存储（CSV格式）
-- 详细的日志记录
+1. `boss_selenium.py` - 职位分类爬虫
+   - 按职位分类爬取 BOSS 直聘上的职位信息
+   - 支持 MySQL 和 CSV 两种存储方式
+
+2. `company_crawler.py` - 公司信息爬虫
+   - 根据公司名称搜索并爬取公司信息
+   - 爬取公司基本信息、在招职位等
+   - 以 Markdown 格式保存信息
 
 ## 环境要求
 
-- Python 3.8+
+- Python 3.6+
 - Chrome/Edge/Firefox 浏览器
+- 对应的浏览器驱动
 
-## 快速开始
+## 安装依赖
 
-1. 安装依赖：
 ```bash
 pip install -r requirements.txt
 ```
 
-2. 运行程序：
+## 使用方法
+
+### 公司信息爬虫
+
 ```bash
-# 基本运行（使用默认配置）
-python boss_selenium.py
-
-# 指定浏览器类型
-python boss_selenium.py --browser chrome  # 或 edge, firefox
-
-# 使用无头模式（不显示浏览器窗口）
-python boss_selenium.py --headless
-
-# 指定输出目录
-python boss_selenium.py --output-dir result
+python company_crawler.py --company "公司名称" [--driver-type chrome|edge|firefox] [--output-dir 输出目录] [--headless]
 ```
 
-## 数据保存
+参数说明：
+- `--company`: 必需，要搜索的公司名称
+- `--driver-type`: 可选，浏览器类型，支持 chrome/edge/firefox
+- `--output-dir`: 可选，输出目录，默认为 "result"
+- `--headless`: 可选，无头模式运行（不显示浏览器界面）
 
-程序会自动将采集到的数据保存为CSV文件，默认保存在 `./result` 目录下，文件名为 `job_data_YYYYMMDD.csv`。
+示例：
+```bash
+# 搜索"腾讯"公司信息
+python company_crawler.py --company "腾讯" --driver-type chrome
 
-### 数据格式
-CSV文件包含以下字段：
-- 职位名称
-- 公司名称
-- 工作地点
-- 薪资范围
-- 工作经验要求
-- 学历要求
-- 公司规模
-- 公司行业
-- 职位描述
-- 发布时间
-
-### 示例数据
-```csv
-职位名称,公司名称,工作地点,薪资范围,工作经验要求,学历要求,公司规模,公司行业,职位描述,发布时间
-Python开发工程师,XX科技有限公司,北京,15k-30k,3-5年,本科,100-499人,互联网,负责Python后端开发...,2024-03-20
+# 无头模式搜索"阿里巴巴"公司信息
+python company_crawler.py --company "阿里巴巴" --headless
 ```
 
-## 参数说明
-
-| 参数           | 说明           | 默认值      |
-|--------------|--------------|----------|
-| --browser    | 指定浏览器类型      | chrome   |
-| --headless   | 是否使用无头模式     | False    |
-| --output-dir | 输出目录        | ./result |
-
-## 项目结构
+### 输出文件结构
 
 ```
-.
-├── boss_selenium.py    # 主程序入口
-├── boss_parser.py      # 数据解析模块
-├── browser_manager.py  # 浏览器管理模块
-├── dbutils.py         # 数据库工具模块
-├── loger.py           # 日志管理模块
-└── requirements.txt   # 项目依赖
+result/
+  companies/
+    公司名称/
+      company_info.md    # 公司基本信息
+      jobs.md            # 在招职位信息
 ```
 
-## 开发文档
+### 文件格式说明
 
-详细的模块说明、使用方法和测试用例请参考 [开发文档](docs/develop.md)。
+1. `company_info.md` 包含：
+   - 公司名称
+   - 行业
+   - 规模
+   - 融资阶段
+   - 公司简介
+   - 公司福利
+
+2. `jobs.md` 包含：
+   - 职位名称
+   - 薪资范围
+   - 工作地点
+   - 经验要求
+   - 学历要求
+   - 职位描述
+   - 技能要求
 
 ## 注意事项
 
-1. 确保已安装所需浏览器（chrome、edge、firefox 其中之一）
-2. 确保网络连接正常
-3. 注意遵守网站的使用条款
+1. 首次运行时需要手动完成验证码验证
+2. 建议使用无头模式运行，减少资源占用
+3. 爬取速度受网络状况影响，请耐心等待
+4. 如遇到验证码，程序会暂停等待手动验证
 
-## 许可证
+## 常见问题
 
-MIT License
+1. 爬取速度慢
+   - 使用无头模式
+   - 减少页面加载等待时间
+   - 优化网络连接
+
+## 更新日志
+
+### v1.0.0 (2024-03-21)
+- 初始版本发布
+- 支持公司信息爬取
+- 支持职位信息爬取
+- 支持 Markdown 格式保存
